@@ -1,0 +1,37 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+**/auth.json
+**/models.json
+**/deepseek_api_key.txt
+*.pem
+*.key
+
+# Python, Node and editor caches
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.ipynb_checkpoints/
+**/node_modules/
+*.py[cod]
+
+# Training and evaluation artifacts
+/models/
+/data/
+/outputs/
+/logs/
+/checkpoints/
+/rollout_dumps/
+*.log
+*.pt
+*.ckpt
+*.safetensors
+
+# Do not accidentally vendor the unlicensed upstream source
+/ShopSimulator/
+/shopsimulator/
+
+# Nested repository metadata
+**/.git/

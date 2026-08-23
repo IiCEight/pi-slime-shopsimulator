@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "reference",
+  "scope": "workflow reference; not an exact artifact or environment lock",
+  "slime": {
+    "upstream_repository": "https://github.com/THUDM/slime.git",
+    "snapshot_base_revision": "624b824a898ab0ec1fcb4d373004c7f3852bf515",
+    "snapshot_includes_current_worktree_changes": true
+  },
+  "shop_simulator": {
+    "upstream_repository": "https://github.com/ShopAgent-Team/ShopSimulator.git",
+    "upstream_base_revision": "51bb26012cee31aea7ac26177c5ffe807026ac07",
+    "tested_modified_revision": "3ab366b2982e9ffa59957086d0845f955ef2245b",
+    "source_vendored": false
+  },
+  "pi": {
+    "package": "@earendil-works/pi-coding-agent",
+    "version": "0.84.2",
+    "node": ">=22.19.0",
+    "npm_integrity": "sha512-l4E+B7hgXKWddRo8bC/eSue2aWZjEgJ9xIpf5p0Og+lq8a2TArCwJ0HCoCPCgaBP/tN4zbYH/wOwvx9pJpeLCA=="
+  },
+  "training_stack": {
+    "torch": "2.11.0+cu129",
+    "transformers": "5.12.1",
+    "ray": "2.57.0",
+    "sglang": {
+      "version": "0.5.15.post1",
+      "revision": "0b3bb0cbe31873994c9f989fddfe2f87ca839fdd",
+      "patch_version": "v0.5.15.post1",
+      "patched_by_build_script": true
+    },
+    "megatron_core": {
+      "version": "0.16.0rc0",
+      "revision": "1dcf0dafa884ad52ffb243625717a3471643e087",
+      "patch_version": "v0.5.15.post1",
+      "patched_by_build_script": true
+    }
+  },
+  "models": {
+    "base": {
+      "repository": "Qwen/Qwen3.5-2B",
+      "license": "Apache-2.0"
+    },
+    "sft": {
+      "repository": "mrzhao13/qwen3.5-2b-shopsimulator-sft-512-1ep"
+    },
+    "grpo_rl": {
+      "repository": "mrzhao13/qwen3.5-2b-shopsimulator-grpo-rl500-1ep"
+    }
+  },
+  "teacher_data": {
+    "repository": "mrzhao13/pi-slime-shopsimulator-sft-512",
+    "visibility": "private",
+    "required_for_workflow": false
+  }
+}
