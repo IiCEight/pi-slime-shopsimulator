@@ -25,56 +25,43 @@ pip_install() {
   pip install "$@" -i "$PIP_INDEX" --extra-index-url "$PIP_EXTRA"
 }
 
-export MAMBA_EXE="${MAMBA_EXE:-/root/.local/bin/micromamba}"
 export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/root/micromamba}"
-if [ ! -x "$MAMBA_EXE" ]; then
-  MAMBA_DIR="$(dirname "$MAMBA_EXE")"
-  mkdir -p "$MAMBA_DIR"
-  # Try GitHub releases (slow but works in CN with retries)
-  wget -q --tries=5 --timeout=60 --waitretry=15 \
-    "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64" \
-    -O "$MAMBA_EXE" || \
-  curl -fL "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64" \
-    -o "$MAMBA_EXE" --retry 5 --retry-delay 10
-  chmod +x "$MAMBA_EXE"
+export MAMBA_EXE="${MAMBA_EXE:-/root/.local/bin/micromamba}"
+
+# Use the pre-installed system conda (miniconda3 bundled with AutoDL image) to
+# create the env — it has cached repodata that fits in the 2 GB container limit.
+# micromamba's SAT solver OOMs at env-create time on this container.
+SYSTEM_CONDA="${SYSTEM_CONDA:-/root/miniconda3/bin/conda}"
+if [ ! -x "$SYSTEM_CONDA" ]; then
+  echo "System conda not found at $SYSTEM_CONDA; set SYSTEM_CONDA= to override" >&2
+  exit 1
 fi
-# Ensure micromamba is on PATH for this session
-export PATH="$(dirname "$MAMBA_EXE"):$PATH"
-# Skip the shell hook (it wraps micromamba in a function that can conflict in
-# non-interactive SSH sessions). Use the binary directly via MAMBA_EXE and
-# activate the env by prepending its bin to PATH manually.
+
 export PS1=tmp
 mkdir -p "${CARGO_HOME:-/root/.cargo}"
 touch "${CARGO_HOME:-/root/.cargo}/env"
 
-if [ -f ~/.condarc ]; then
-  sed -i '/^\s*-\s*nodefaults\s*$/d' ~/.condarc
+ENV_PREFIX="$MAMBA_ROOT_PREFIX/envs/slime"
+if [ ! -f "$ENV_PREFIX/conda-meta/history" ]; then
+  "$SYSTEM_CONDA" create -p "$ENV_PREFIX" python=3.12 pip -y \
+    --override-channels \
+    -c https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge
 fi
-
-# Use Tsinghua conda mirror
-cat > ~/.condarc <<'EOF'
-channels:
-  - defaults
-show_channel_urls: true
-default_channels:
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
-  - https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/msys2
-custom_channels:
-  conda-forge: https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
-  nvidia: https://mirrors.sustech.edu.cn/anaconda-extra/cloud
-EOF
-
-if [ -f "${MAMBA_ROOT_PREFIX}/envs/slime/conda-meta/history" ]; then
-  "$MAMBA_EXE" install -n slime python=3.12 pip -r "$MAMBA_ROOT_PREFIX" -c conda-forge -y
-else
-  "$MAMBA_EXE" create -n slime python=3.12 pip -r "$MAMBA_ROOT_PREFIX" -c conda-forge -y
-fi
-# Activate by prepending env bin to PATH (no shell hook needed in non-interactive session)
-export PATH="$MAMBA_ROOT_PREFIX/envs/slime/bin:$PATH"
-export CONDA_PREFIX="$MAMBA_ROOT_PREFIX/envs/slime"
+# Activate by prepending env bin to PATH
+export PATH="$ENV_PREFIX/bin:$PATH"
+export CONDA_PREFIX="$ENV_PREFIX"
 export CONDA_DEFAULT_ENV=slime
 export CUDA_HOME="$CONDA_PREFIX"
+
+# For subsequent conda installs (cuda, cudnn, rust) use micromamba if available,
+# otherwise fall back to system conda with Tsinghua nvidia mirror.
+if [ -x "$MAMBA_EXE" ]; then
+  CONDA_CMD="$MAMBA_EXE"
+  CONDA_ARGS="-r $MAMBA_ROOT_PREFIX"
+else
+  CONDA_CMD="$SYSTEM_CONDA"
+  CONDA_ARGS="-p $ENV_PREFIX"
+fi
 
 export SGLANG_VERSION="v0.5.15.post1"
 export SGLANG_COMMIT="0b3bb0cbe31873994c9f989fddfe2f87ca839fdd"
@@ -86,7 +73,7 @@ export BASE_DIR=${BASE_DIR:-"/root"}
 cd $BASE_DIR
 
 # install cuda 12.9 — use SUSTech nvidia mirror (faster in CN)
-"$MAMBA_EXE" install -n slime -r "$MAMBA_ROOT_PREFIX" \
+$CONDA_CMD install $CONDA_ARGS -n slime \
   cuda=12.9.1 \
   cuda-nvtx=12.9.79 \
   cuda-nvtx-dev=12.9.79 \
@@ -95,8 +82,8 @@ cd $BASE_DIR
   -c https://mirrors.sustech.edu.cn/anaconda-extra/cloud/nvidia \
   -c conda-forge \
   -y
-"$MAMBA_EXE" install -n slime -r "$MAMBA_ROOT_PREFIX" -c conda-forge cudnn -y
-"$MAMBA_EXE" install -n slime -r "$MAMBA_ROOT_PREFIX" -c conda-forge rust -y
+$CONDA_CMD install $CONDA_ARGS -n slime -c conda-forge cudnn -y
+$CONDA_CMD install $CONDA_ARGS -n slime -c conda-forge rust -y
 
 pip_install cuda-python==12.9
 
