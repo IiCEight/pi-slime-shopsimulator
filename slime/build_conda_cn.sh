@@ -53,15 +53,9 @@ export CONDA_PREFIX="$ENV_PREFIX"
 export CONDA_DEFAULT_ENV=slime
 export CUDA_HOME="$CONDA_PREFIX"
 
-# For subsequent conda installs (cuda, cudnn, rust) use micromamba if available,
-# otherwise fall back to system conda with Tsinghua nvidia mirror.
-if [ -x "$MAMBA_EXE" ]; then
-  CONDA_CMD="$MAMBA_EXE"
-  CONDA_ARGS="-r $MAMBA_ROOT_PREFIX"
-else
-  CONDA_CMD="$SYSTEM_CONDA"
-  CONDA_ARGS="-p $ENV_PREFIX"
-fi
+# Always use system conda for all conda installs — micromamba OOMs at 2 GB container limit.
+CONDA_CMD="$SYSTEM_CONDA"
+CONDA_ARGS="-p $ENV_PREFIX"
 
 export SGLANG_VERSION="v0.5.15.post1"
 export SGLANG_COMMIT="0b3bb0cbe31873994c9f989fddfe2f87ca839fdd"
@@ -73,7 +67,7 @@ export BASE_DIR=${BASE_DIR:-"/root"}
 cd $BASE_DIR
 
 # install cuda 12.9 — use SUSTech nvidia mirror (faster in CN)
-$CONDA_CMD install $CONDA_ARGS -n slime \
+$CONDA_CMD install $CONDA_ARGS \
   cuda=12.9.1 \
   cuda-nvtx=12.9.79 \
   cuda-nvtx-dev=12.9.79 \
@@ -82,8 +76,8 @@ $CONDA_CMD install $CONDA_ARGS -n slime \
   -c https://mirrors.sustech.edu.cn/anaconda-extra/cloud/nvidia \
   -c conda-forge \
   -y
-$CONDA_CMD install $CONDA_ARGS -n slime -c conda-forge cudnn -y
-$CONDA_CMD install $CONDA_ARGS -n slime -c conda-forge rust -y
+$CONDA_CMD install $CONDA_ARGS -c conda-forge cudnn -y
+$CONDA_CMD install $CONDA_ARGS -c conda-forge rust -y
 
 pip_install cuda-python==12.9
 
