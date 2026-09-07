@@ -28,15 +28,22 @@ pip_install() {
 export MAMBA_EXE="${MAMBA_EXE:-/root/.local/bin/micromamba}"
 export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/root/micromamba}"
 if [ ! -x "$MAMBA_EXE" ]; then
-  # Install micromamba from Gitee mirror instead of micro.mamba.pm
   MAMBA_DIR="$(dirname "$MAMBA_EXE")"
   mkdir -p "$MAMBA_DIR"
-  curl -L "https://gitee.com/conda-forge/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64" \
-    -o "$MAMBA_EXE" --retry 3
+  # Try GitHub releases (slow but works in CN with retries)
+  wget -q --tries=5 --timeout=60 --waitretry=15 \
+    "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64" \
+    -O "$MAMBA_EXE" || \
+  curl -fL "https://github.com/mamba-org/micromamba-releases/releases/download/2.0.5-0/micromamba-linux-64" \
+    -o "$MAMBA_EXE" --retry 5 --retry-delay 10
   chmod +x "$MAMBA_EXE"
 fi
+# Ensure micromamba is on PATH for this session
+export PATH="$(dirname "$MAMBA_EXE"):$PATH"
 eval "$("$MAMBA_EXE" shell hook --shell bash --root-prefix "$MAMBA_ROOT_PREFIX")"
 export PS1=tmp
+# Ensure micromamba stays on PATH after the hook
+export PATH="$(dirname "$MAMBA_EXE"):$PATH"
 mkdir -p "${CARGO_HOME:-/root/.cargo}"
 touch "${CARGO_HOME:-/root/.cargo}/env"
 
