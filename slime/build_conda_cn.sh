@@ -40,10 +40,10 @@ if [ ! -x "$MAMBA_EXE" ]; then
 fi
 # Ensure micromamba is on PATH for this session
 export PATH="$(dirname "$MAMBA_EXE"):$PATH"
-eval "$("$MAMBA_EXE" shell hook --shell bash --root-prefix "$MAMBA_ROOT_PREFIX")"
+# Skip the shell hook (it wraps micromamba in a function that can conflict in
+# non-interactive SSH sessions). Use the binary directly via MAMBA_EXE and
+# activate the env by prepending its bin to PATH manually.
 export PS1=tmp
-# Ensure micromamba stays on PATH after the hook
-export PATH="$(dirname "$MAMBA_EXE"):$PATH"
 mkdir -p "${CARGO_HOME:-/root/.cargo}"
 touch "${CARGO_HOME:-/root/.cargo}/env"
 
@@ -66,11 +66,14 @@ custom_channels:
 EOF
 
 if [ -f "${MAMBA_ROOT_PREFIX}/envs/slime/conda-meta/history" ]; then
-  micromamba install -n slime python=3.12 pip -c conda-forge -y
+  "$MAMBA_EXE" install -n slime python=3.12 pip -r "$MAMBA_ROOT_PREFIX" -c conda-forge -y
 else
-  micromamba create -n slime python=3.12 pip -c conda-forge -y
+  "$MAMBA_EXE" create -n slime python=3.12 pip -r "$MAMBA_ROOT_PREFIX" -c conda-forge -y
 fi
-micromamba activate slime
+# Activate by prepending env bin to PATH (no shell hook needed in non-interactive session)
+export PATH="$MAMBA_ROOT_PREFIX/envs/slime/bin:$PATH"
+export CONDA_PREFIX="$MAMBA_ROOT_PREFIX/envs/slime"
+export CONDA_DEFAULT_ENV=slime
 export CUDA_HOME="$CONDA_PREFIX"
 
 export SGLANG_VERSION="v0.5.15.post1"
@@ -83,7 +86,7 @@ export BASE_DIR=${BASE_DIR:-"/root"}
 cd $BASE_DIR
 
 # install cuda 12.9 — use SUSTech nvidia mirror (faster in CN)
-micromamba install -n slime \
+"$MAMBA_EXE" install -n slime -r "$MAMBA_ROOT_PREFIX" \
   cuda=12.9.1 \
   cuda-nvtx=12.9.79 \
   cuda-nvtx-dev=12.9.79 \
@@ -92,8 +95,8 @@ micromamba install -n slime \
   -c https://mirrors.sustech.edu.cn/anaconda-extra/cloud/nvidia \
   -c conda-forge \
   -y
-micromamba install -n slime -c conda-forge cudnn -y
-micromamba install -n slime -c conda-forge rust -y
+"$MAMBA_EXE" install -n slime -r "$MAMBA_ROOT_PREFIX" -c conda-forge cudnn -y
+"$MAMBA_EXE" install -n slime -r "$MAMBA_ROOT_PREFIX" -c conda-forge rust -y
 
 pip_install cuda-python==12.9
 
