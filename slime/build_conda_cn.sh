@@ -77,7 +77,14 @@ $CONDA_CMD install $CONDA_ARGS \
   -c conda-forge \
   -y
 $CONDA_CMD install $CONDA_ARGS -c conda-forge cudnn -y
-$CONDA_CMD install $CONDA_ARGS -c conda-forge rust -y
+# Install Rust via rustup from CN mirror instead of conda (conda rust solve OOMs in 2GB container)
+export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
+export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
+if ! command -v rustc &>/dev/null; then
+  curl -sSf https://mirrors.ustc.edu.cn/misc/rustup-install.sh | sh -s -- -y --no-modify-path
+fi
+export PATH="$HOME/.cargo/bin:$PATH"
+rustc --version
 
 pip_install cuda-python==12.9
 
