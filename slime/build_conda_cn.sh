@@ -20,6 +20,8 @@ TORCH_INDEX="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
 # Aliyun serves wheel listings as HTML directory (not PEP 503 simple index).
 # Use --find-links for direct wheel resolution.
 TORCH_FIND_LINKS="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
+# GitHub proxy (github.com is ~9 KB/s from AutoDL; route everything through gh-proxy.com)
+GH="https://gh-proxy.com/https://github.com"
 # Gitee mirrors
 SGLANG_MIRROR="https://gitee.com/mirrors/sglang.git"
 MEGATRON_MIRROR="https://gitee.com/mirrors/Megatron-LM.git"
@@ -170,7 +172,7 @@ if [ -f "$WHEELS_DIR/$FLASH_ATTN_WHL" ]; then
   pip install --no-deps "$WHEELS_DIR/$FLASH_ATTN_WHL"
 else
   wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
-    "https://github.com/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
+    "$GH/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
     -O /tmp/flash_attn.whl
   echo "3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697  /tmp/flash_attn.whl" | sha256sum -c
   pip install --no-deps /tmp/flash_attn.whl
@@ -178,9 +180,9 @@ fi
 
 pip_install flash-linear-attention==0.4.2
 
-# FlashQLA: try Gitee mirror first, fall back to GitHub
+# FlashQLA: try Gitee mirror first, fall back to GitHub via proxy
 pip_install git+https://gitee.com/mirrors/FlashQLA.git --no-build-isolation 2>/dev/null || \
-  pip install git+https://github.com/QwenLM/FlashQLA.git --no-build-isolation
+  pip install git+$GH/QwenLM/FlashQLA.git --no-build-isolation
 
 # tilelang
 pip install tilelang -f https://tile-ai.github.io/whl/nightly/cu128/ -i "$PIP_INDEX"
@@ -194,7 +196,7 @@ fi
 cd "$BASE_DIR/apex"
 git checkout 10417aceddd7d5d05d7cbf7b0fc2daad1105f8b4 2>/dev/null || {
   echo "apex commit not in Gitee mirror, fetching from GitHub..."
-  git remote add upstream https://github.com/NVIDIA/apex.git || true
+  git remote add upstream $GH/NVIDIA/apex.git || true
   git fetch upstream 10417aceddd7d5d05d7cbf7b0fc2daad1105f8b4
   git checkout 10417aceddd7d5d05d7cbf7b0fc2daad1105f8b4
 }
@@ -209,7 +211,7 @@ export TMS_CUDA_MAJOR
 # torch_memory_saver: clone from Gitee if available, else GitHub
 if [ ! -d "$BASE_DIR/torch_memory_saver" ]; then
   git clone https://gitee.com/mirrors/torch_memory_saver.git "$BASE_DIR/torch_memory_saver" 2>/dev/null || \
-    git clone https://github.com/zhuzilin/torch_memory_saver.git "$BASE_DIR/torch_memory_saver"
+    git clone $GH/zhuzilin/torch_memory_saver.git "$BASE_DIR/torch_memory_saver"
 fi
 cd "$BASE_DIR/torch_memory_saver"
 git checkout ${TMS_COMMIT}
@@ -222,7 +224,7 @@ if [ -f "$WHEELS_DIR/$SGR_WHL" ]; then
   pip install "$WHEELS_DIR/$SGR_WHL" --force-reinstall -i "$PIP_INDEX"
 else
   wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
-    "https://github.com/zhuzilin/sgl-router/releases/download/v0.3.2-9daabcd/sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl" \
+    "$GH/zhuzilin/sgl-router/releases/download/v0.3.2-9daabcd/sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl" \
     -O /tmp/sglang_router.whl
   pip install /tmp/sglang_router.whl --force-reinstall -i "$PIP_INDEX"
 fi

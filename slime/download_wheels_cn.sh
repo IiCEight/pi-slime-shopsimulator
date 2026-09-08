@@ -13,6 +13,7 @@ WHEELS_DIR="${WHEELS_DIR:-$BASE_DIR/wheels}"
 PIP_INDEX="https://mirrors.aliyun.com/pypi/simple/"
 PIP_EXTRA="https://pypi.tuna.tsinghua.edu.cn/simple/"
 TORCH_FIND_LINKS="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
+GH="https://gh-proxy.com/https://github.com"
 
 mkdir -p "$WHEELS_DIR"
 cd "$WHEELS_DIR"
@@ -72,11 +73,11 @@ pip_dl "nvidia-cuda-nvrtc-cu12==12.9.86.*"
 pip_dl "nvidia-cudnn-cu12==9.16.0.29"
 
 echo "=== Downloading flash-attn wheel via wget (resumable) ==="
-dl "https://github.com/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
+dl "$GH/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
    "flash_attn-2.8.3+cu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
 
 echo "=== Downloading sgl-router wheel via wget (resumable) ==="
-dl "https://github.com/zhuzilin/sgl-router/releases/download/v0.3.2-9daabcd/sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl" \
+dl "$GH/zhuzilin/sgl-router/releases/download/v0.3.2-9daabcd/sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl" \
    "sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl"
 
 echo ""
