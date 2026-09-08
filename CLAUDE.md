@@ -8,7 +8,7 @@
 - File transfer chain: **local edit → `git commit` → `git push origin main` → `ssh autodl "git pull"` on server**
 - The git remote is `origin` at `git@github-saber:IiCEight/pi-slime-shopsimulator.git`
 - To push: you need the SSH agent running — run `eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519_saber` first if `git push` fails with "does not appear to be a git repository"
-- **Server git pull is slow/fails** (GitHub ~9 KB/s from AutoDL) — remote URL on server is set to `https://gh-proxy.com/https://github.com/IiCEight/pi-slime-shopsimulator.git`; if it breaks, re-run: `git remote set-url origin https://gh-proxy.com/https://github.com/IiCEight/pi-slime-shopsimulator.git`
+- **Server git pull is slow/fails** (GitHub ~9 KB/s from AutoDL) — remote URL on server is set to `https://ghfast.top/https://github.com/IiCEight/pi-slime-shopsimulator.git`; if it breaks, re-run: `git remote set-url origin https://ghfast.top/https://github.com/IiCEight/pi-slime-shopsimulator.git`
 
 ## Server Access
 
