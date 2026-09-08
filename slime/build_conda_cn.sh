@@ -95,8 +95,13 @@ if [ ! -d "$BASE_DIR/sglang" ]; then
 fi
 cd $BASE_DIR/sglang
 git checkout ${SGLANG_COMMIT}
-# Install sglang deps first, then force torch to CN mirror wheel
+# Install torch+cu129 from Aliyun FIRST to avoid pip resolving CUDA-13 torch deps (366 MB overseas)
+pip install --no-deps \
+  torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
+  --index-url "$TORCH_INDEX"
+# Now install sglang[all] — torch is already satisfied, pip won't re-download it
 pip install -e "python[all]" --extra-index-url "$TORCH_INDEX" -i "$PIP_INDEX"
+# Force-reinstall torch again to be sure (sglang may have overwritten with cu13 variant)
 pip install --force-reinstall --no-deps \
   torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
   --index-url "$TORCH_INDEX"
