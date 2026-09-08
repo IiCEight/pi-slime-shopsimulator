@@ -29,10 +29,25 @@
 
 - Build log: `/root/autodl-tmp/build.log`
 - Build session: tmux `build` — check with `ssh autodl "tail -30 /root/autodl-tmp/build.log"`
-- Restart build if needed:
-  ```bash
-  ssh autodl "tmux new-session -d -s build -x 220 -y 50 2>/dev/null || true && tmux send-keys -t build 'export SLIME_DIR=/root/autodl-tmp/pi-slime-shopsimulator/slime BASE_DIR=/root/autodl-tmp MAMBA_ROOT_PREFIX=/root/autodl-tmp/micromamba MAMBA_EXE=/root/.local/bin/micromamba SYSTEM_CONDA=/root/miniconda3/bin/conda && bash \$SLIME_DIR/build_conda_cn.sh 2>&1 | tee /root/autodl-tmp/build.log' Enter"
-  ```
+## Two-Phase Build Strategy
+
+### Phase 1 — Pre-download wheels (run once, fully resumable)
+```bash
+ssh autodl "tmux new-session -d -s dl 2>/dev/null || true && tmux send-keys -t dl 'BASE_DIR=/root/autodl-tmp bash /root/autodl-tmp/pi-slime-shopsimulator/slime/download_wheels_cn.sh 2>&1 | tee /root/autodl-tmp/download.log' Enter"
+```
+- Uses `wget --continue` for large wheels (flash-attn, sgl-router)
+- Uses `pip download` (skips already-present files) for PyPI wheels
+- All wheels saved to `/root/autodl-tmp/wheels/`
+- **Safe to interrupt and re-run** — resumes from where it left off
+
+### Phase 2 — Build (uses local wheels, no re-downloading)
+```bash
+ssh autodl "tmux new-session -d -s build 2>/dev/null || true && tmux send-keys -t build 'export SLIME_DIR=/root/autodl-tmp/pi-slime-shopsimulator/slime BASE_DIR=/root/autodl-tmp MAMBA_ROOT_PREFIX=/root/autodl-tmp/micromamba MAMBA_EXE=/root/.local/bin/micromamba SYSTEM_CONDA=/root/miniconda3/bin/conda WHEELS_DIR=/root/autodl-tmp/wheels && bash \$SLIME_DIR/build_conda_cn.sh 2>&1 | tee /root/autodl-tmp/build.log' Enter"
+```
+- `build_conda_cn.sh` uses `--find-links /root/autodl-tmp/wheels/` for all installs
+- Restarts are fast — wheels are already on disk
+
+
 
 ## Server Constraints
 
