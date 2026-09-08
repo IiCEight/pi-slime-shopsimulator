@@ -69,17 +69,25 @@ export TMS_COMMIT="8d30c59ca12a68d9deccbc9c6599076a1218cbc5"
 export BASE_DIR=${BASE_DIR:-"/root"}
 cd $BASE_DIR
 
-# install cuda 12.9 — use SUSTech nvidia mirror (faster in CN)
-$CONDA_CMD install $CONDA_ARGS \
-  cuda=12.9.1 \
-  cuda-nvtx=12.9.79 \
-  cuda-nvtx-dev=12.9.79 \
-  nccl \
-  -c https://mirrors.sustech.edu.cn/anaconda-extra/cloud/nvidia/label/cuda-12.9.1 \
-  -c https://mirrors.sustech.edu.cn/anaconda-extra/cloud/nvidia \
-  -c conda-forge \
-  -y
-$CONDA_CMD install $CONDA_ARGS -c conda-forge cudnn -y
+# install cuda 12.9 — skip if already present (conda repodata fetch OOMs in 2GB container)
+if [ ! -f "$ENV_PREFIX/lib/libcudart.so" ]; then
+  $CONDA_CMD install $CONDA_ARGS \
+    cuda=12.9.1 \
+    cuda-nvtx=12.9.79 \
+    cuda-nvtx-dev=12.9.79 \
+    nccl \
+    -c https://mirrors.sustech.edu.cn/anaconda-extra/cloud/nvidia/label/cuda-12.9.1 \
+    -c https://mirrors.sustech.edu.cn/anaconda-extra/cloud/nvidia \
+    -c conda-forge \
+    -y
+else
+  echo "cuda already installed, skipping"
+fi
+if [ ! -f "$ENV_PREFIX/lib/libcudnn.so" ]; then
+  $CONDA_CMD install $CONDA_ARGS -c conda-forge cudnn -y
+else
+  echo "cudnn already installed, skipping"
+fi
 # Install Rust via rustup from CN mirror instead of conda (conda rust solve OOMs in 2GB container)
 export RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static
 export RUSTUP_UPDATE_ROOT=https://mirrors.ustc.edu.cn/rust-static/rustup
