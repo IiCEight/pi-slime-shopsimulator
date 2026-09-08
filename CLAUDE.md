@@ -14,7 +14,19 @@
 - SSH alias: `ssh autodl` (configured in `~/.ssh/config`)
 - Server: `connect.westb.seetacloud.com:42698`, user `root`, key `id_ed25519_saber`
 - AutoDL rented Pro 6000D (84 GB VRAM), CUDA driver 595.58.03
-- All work lives under `/root/autodl-tmp/` (50 GB NVMe, persists across reboots)
+## Disk Layout on Server
+
+| Path | Size | Notes |
+|---|---|---|
+| `/` (overlay) | 30 GB | Container root — keep free, don't install big things here |
+| `/root/autodl-tmp` | **50 GB** | Persistent data disk — all build work goes here |
+| `/root/autodl-pub` | 20 TB | Public shared data (read-only) |
+
+**Important:** The system `/root/miniconda3` (17 GB) and `/root/.cache` (pip cache) were on `/`. To save space:
+- pip cache symlinked: `/root/.cache/pip` → `/root/autodl-tmp/.cache/pip`
+- rustup symlinked: `/root/.rustup` → `/root/autodl-tmp/.rustup`
+- All build output (conda env, sglang, Megatron-LM, etc.) lives under `/root/autodl-tmp/`
+
 - Build log: `/root/autodl-tmp/build.log`
 - Build session: tmux `build` — check with `ssh autodl "tail -30 /root/autodl-tmp/build.log"`
 - Restart build if needed:

@@ -102,12 +102,13 @@ git checkout ${SGLANG_COMMIT}
 pip install --no-deps \
   torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
   --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
-# Now install sglang[all] — torch is already satisfied, pip won't re-download it.
-# Pin cuda-python==12.9 so sglang cannot pull cuda-python>=13 (which requires
-# cuda-bindings~=13.x, incompatible with torch+cu129's cuda-bindings<13 dep).
-# Also pin torch==2.11.0+cu129 explicitly so pip never backtracks to plain torch.
+# Install sglang[all].
+# sglang requires cuda-python>=13 which conflicts with torch+cu129's cuda-bindings<13.
+# Solution: allow sglang to install cuda-python 13.x (it's the metadata package, not
+# the actual runtime), then force-reinstall torch+cu129 afterward to restore cu129 libs.
+# Pass torch+cu129 explicitly so pip resolves it from --find-links and doesn't backtrack
+# to plain torch (which has no +cu129 suffix on PyPI).
 pip install -e "python[all]" \
-  "cuda-python==12.9" \
   "torch==2.11.0+cu129" "torchvision==0.26.0+cu129" "torchaudio==2.11.0+cu129" \
   --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
 # Force-reinstall torch again to be sure (sglang may have overwritten with cu13 variant)
