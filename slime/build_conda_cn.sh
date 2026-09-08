@@ -107,10 +107,10 @@ if [ ! -d "$BASE_DIR/sglang" ]; then
 fi
 cd $BASE_DIR/sglang
 git checkout ${SGLANG_COMMIT}
-# sglang requires cuda-python>=13 → cuda-bindings~=13.x, but torch==2.11.0+cu129
-# requires cuda-bindings<13. These constraints are irreconcilable in a single solve.
-# Fix: don't pass torch+cu129 here — let pip pick plain torch==2.11.0 (no +cu129
-# suffix, no cuda-bindings<13 constraint). Then force-reinstall torch+cu129 after.
+# Patch sglang's overly-conservative cuda-python>=13.0 pin.
+# sglang only uses cuda.bindings.driver/runtime, which exist in 12.9.x.
+# torch+cu129 requires cuda-bindings<13, so we relax to >=12.9 to let pip resolve freely.
+sed -i 's/"cuda-python>=13\.0"/"cuda-python>=12.9"/' python/pyproject.toml
 pip install -e "python[all]" \
   --find-links "$TORCH_FIND_LINKS" \
   ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
