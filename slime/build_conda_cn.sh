@@ -17,6 +17,9 @@ export SLIME_DIR="${SLIME_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pw
 PIP_INDEX="https://mirrors.aliyun.com/pypi/simple/"
 PIP_EXTRA="https://pypi.tuna.tsinghua.edu.cn/simple/"
 TORCH_INDEX="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
+# Aliyun serves wheel listings as HTML directory (not PEP 503 simple index).
+# Use --find-links for direct wheel resolution.
+TORCH_FIND_LINKS="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
 # Gitee mirrors
 SGLANG_MIRROR="https://gitee.com/mirrors/sglang.git"
 MEGATRON_MIRROR="https://gitee.com/mirrors/Megatron-LM.git"
@@ -98,13 +101,13 @@ git checkout ${SGLANG_COMMIT}
 # Install torch+cu129 from Aliyun FIRST to avoid pip resolving CUDA-13 torch deps (366 MB overseas)
 pip install --no-deps \
   torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
-  --index-url "$TORCH_INDEX"
+  --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
 # Now install sglang[all] — torch is already satisfied, pip won't re-download it
-pip install -e "python[all]" --extra-index-url "$TORCH_INDEX" -i "$PIP_INDEX"
+pip install -e "python[all]" --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
 # Force-reinstall torch again to be sure (sglang may have overwritten with cu13 variant)
 pip install --force-reinstall --no-deps \
   torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
-  --index-url "$TORCH_INDEX"
+  --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
 pip install --force-reinstall --no-deps \
   sglang-kernel==0.4.4 sgl-deep-gemm==0.1.4 \
   --index-url https://docs.sglang.ai/whl/cu129/
@@ -142,8 +145,8 @@ pip install --force-reinstall --no-deps \
   nvidia-nvjitlink-cu12 \
   nvidia-nvshmem-cu12 \
   nvidia-nvtx-cu12 \
-  --index-url "$TORCH_INDEX" \
-  --extra-index-url https://pypi.org/simple
+  --find-links "$TORCH_FIND_LINKS" \
+  -i "$PIP_INDEX"
 
 pip_install cmake ninja
 
