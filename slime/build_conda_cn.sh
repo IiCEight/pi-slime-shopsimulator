@@ -97,8 +97,6 @@ fi
 export PATH="$HOME/.cargo/bin:$PATH"
 rustc --version
 
-pip_install cuda-python==12.9
-
 # install sglang from Gitee mirror
 if [ ! -d "$BASE_DIR/sglang" ]; then
   cd $BASE_DIR
@@ -106,18 +104,12 @@ if [ ! -d "$BASE_DIR/sglang" ]; then
 fi
 cd $BASE_DIR/sglang
 git checkout ${SGLANG_COMMIT}
-# Install torch+cu129 from Aliyun FIRST to avoid pip resolving CUDA-13 torch deps (366 MB overseas)
-pip install --no-deps \
-  torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
-  --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
-# Install sglang[all].
-# sglang requires cuda-python>=13 which conflicts with torch+cu129's cuda-bindings<13.
-# Solution: allow sglang to install cuda-python 13.x (it's the metadata package, not
-# the actual runtime), then force-reinstall torch+cu129 afterward to restore cu129 libs.
-# Pass torch+cu129 explicitly so pip resolves it from --find-links and doesn't backtrack
-# to plain torch (which has no +cu129 suffix on PyPI).
+# sglang requires cuda-python>=13 → cuda-bindings~=13.x, but torch+cu129 requires
+# cuda-bindings<13. These are irreconcilable in a single pip solve.
+# Strategy: install sglang[all] WITHOUT torch in the solve (use --no-deps for torch
+# pre-installed), letting sglang pull cuda-python 13.x freely. Then force-reinstall
+# torch+cu129 with --no-deps to put the correct torch back without touching cuda-bindings.
 pip install -e "python[all]" \
-  "torch==2.11.0+cu129" "torchvision==0.26.0+cu129" "torchaudio==2.11.0+cu129" \
   --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
 # Force-reinstall torch again to be sure (sglang may have overwritten with cu13 variant)
 pip install --force-reinstall --no-deps \
