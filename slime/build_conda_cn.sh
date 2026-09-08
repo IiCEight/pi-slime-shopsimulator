@@ -24,8 +24,11 @@ TORCH_FIND_LINKS="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
 SGLANG_MIRROR="https://gitee.com/mirrors/sglang.git"
 MEGATRON_MIRROR="https://gitee.com/mirrors/Megatron-LM.git"
 
+WHEELS_DIR="${WHEELS_DIR:-$BASE_DIR/wheels}"
+
 pip_install() {
-  pip install "$@" -i "$PIP_INDEX" --extra-index-url "$PIP_EXTRA"
+  pip install "$@" -i "$PIP_INDEX" --extra-index-url "$PIP_EXTRA" \
+    ${WHEELS_DIR:+--find-links "$WHEELS_DIR"}
 }
 
 export MAMBA_ROOT_PREFIX="${MAMBA_ROOT_PREFIX:-/root/micromamba}"
@@ -110,11 +113,15 @@ git checkout ${SGLANG_COMMIT}
 # pre-installed), letting sglang pull cuda-python 13.x freely. Then force-reinstall
 # torch+cu129 with --no-deps to put the correct torch back without touching cuda-bindings.
 pip install -e "python[all]" \
-  --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
+  --find-links "$TORCH_FIND_LINKS" \
+  ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
+  -i "$PIP_INDEX" --extra-index-url "$PIP_EXTRA"
 # Force-reinstall torch again to be sure (sglang may have overwritten with cu13 variant)
 pip install --force-reinstall --no-deps \
   torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
-  --find-links "$TORCH_FIND_LINKS" -i "$PIP_INDEX"
+  --find-links "$TORCH_FIND_LINKS" \
+  ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
+  -i "$PIP_INDEX"
 pip install --force-reinstall --no-deps \
   sglang-kernel==0.4.4 sgl-deep-gemm==0.1.4 \
   --index-url https://docs.sglang.ai/whl/cu129/
@@ -153,21 +160,22 @@ pip install --force-reinstall --no-deps \
   nvidia-nvshmem-cu12 \
   nvidia-nvtx-cu12 \
   --find-links "$TORCH_FIND_LINKS" \
+  ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
   -i "$PIP_INDEX"
 
 pip_install cmake ninja
 
-# flash-attn: pinned community wheel (SHA256 verified), no mirror needed — direct URL
-pip install --no-deps \
-  "https://github.com/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl#sha256=3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697" \
-  || {
-    echo "Direct flash-attn download failed (GitHub blocked). Trying via wget with retry..."
-    wget -q --retry-connrefused --tries=10 --waitretry=30 \
-      "https://github.com/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
-      -O /tmp/flash_attn.whl
-    echo "3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697  /tmp/flash_attn.whl" | sha256sum -c
-    pip install --no-deps /tmp/flash_attn.whl
-  }
+# flash-attn: use pre-downloaded wheel if available, else download via wget (resumable)
+FLASH_ATTN_WHL="flash_attn-2.8.3+cu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
+if [ -f "$WHEELS_DIR/$FLASH_ATTN_WHL" ]; then
+  pip install --no-deps "$WHEELS_DIR/$FLASH_ATTN_WHL"
+else
+  wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
+    "https://github.com/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
+    -O /tmp/flash_attn.whl
+  echo "3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697  /tmp/flash_attn.whl" | sha256sum -c
+  pip install --no-deps /tmp/flash_attn.whl
+fi
 
 pip_install flash-linear-attention==0.4.2
 
@@ -210,14 +218,15 @@ pip install -v . \
   --no-cache-dir --force-reinstall --no-build-isolation -i "$PIP_INDEX"
 
 pip_install "nvidia-modelopt[torch]>=0.37.0" --no-build-isolation
-pip install https://github.com/zhuzilin/sgl-router/releases/download/v0.3.2-9daabcd/sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl --force-reinstall \
-  || {
-    echo "sgl-router GitHub download failed, trying wget with retry..."
-    wget -q --retry-connrefused --tries=10 --waitretry=30 \
-      "https://github.com/zhuzilin/sgl-router/releases/download/v0.3.2-9daabcd/sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl" \
-      -O /tmp/sglang_router.whl
-    pip install /tmp/sglang_router.whl --force-reinstall -i "$PIP_INDEX"
-  }
+SGR_WHL="sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl"
+if [ -f "$WHEELS_DIR/$SGR_WHL" ]; then
+  pip install "$WHEELS_DIR/$SGR_WHL" --force-reinstall -i "$PIP_INDEX"
+else
+  wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
+    "https://github.com/zhuzilin/sgl-router/releases/download/v0.3.2-9daabcd/sglang_router-0.3.2-cp38-abi3-manylinux_2_28_x86_64.whl" \
+    -O /tmp/sglang_router.whl
+  pip install /tmp/sglang_router.whl --force-reinstall -i "$PIP_INDEX"
+fi
 python -c "import sglang_router; assert 'slime' in sglang_router.__version__"
 
 # Megatron from Gitee mirror
