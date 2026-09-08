@@ -13,7 +13,7 @@ WHEELS_DIR="${WHEELS_DIR:-$BASE_DIR/wheels}"
 PIP_INDEX="https://mirrors.aliyun.com/pypi/simple/"
 PIP_EXTRA="https://pypi.tuna.tsinghua.edu.cn/simple/"
 TORCH_FIND_LINKS="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
-GH="https://gh-proxy.com/https://github.com"
+GH="https://ghfast.top/https://github.com"
 
 mkdir -p "$WHEELS_DIR"
 cd "$WHEELS_DIR"

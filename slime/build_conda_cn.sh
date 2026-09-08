@@ -21,7 +21,7 @@ TORCH_INDEX="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
 # Use --find-links for direct wheel resolution.
 TORCH_FIND_LINKS="https://mirrors.aliyun.com/pytorch-wheels/cu129/"
 # GitHub proxy (github.com is ~9 KB/s from AutoDL; route everything through gh-proxy.com)
-GH="https://gh-proxy.com/https://github.com"
+GH="https://ghfast.top/https://github.com"
 # Gitee mirrors
 SGLANG_MIRROR="https://gitee.com/mirrors/sglang.git"
 MEGATRON_MIRROR="https://gitee.com/mirrors/Megatron-LM.git"
