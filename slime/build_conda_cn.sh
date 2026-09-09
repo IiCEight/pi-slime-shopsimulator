@@ -123,9 +123,16 @@ pip install --force-reinstall --no-deps \
   --find-links "$TORCH_FIND_LINKS" \
   ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
   -i "$PIP_INDEX"
-pip install --force-reinstall --no-deps \
-  sglang-kernel==0.4.4 sgl-deep-gemm==0.1.4 \
-  --index-url https://docs.sglang.ai/whl/cu129/
+SGK_WHL="sglang_kernel-0.4.4+cu129-cp310-abi3-manylinux2014_x86_64.whl"
+if [ ! -f "$WHEELS_DIR/$SGK_WHL" ]; then
+  wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
+    "$GH/sgl-project/whl/releases/download/v0.4.4/sglang_kernel-0.4.4%2Bcu129-cp310-abi3-manylinux2014_x86_64.whl" \
+    -O "$WHEELS_DIR/$SGK_WHL"
+fi
+pip install --force-reinstall --no-deps "$WHEELS_DIR/$SGK_WHL"
+# sgl-deep-gemm is pure-Python (no cu suffix), already in wheels dir from pip_dl
+SGD_WHL="sgl_deep_gemm-0.1.4-py3-none-manylinux2014_x86_64.whl"
+pip install --force-reinstall --no-deps "$WHEELS_DIR/$SGD_WHL"
 pip uninstall -y \
   nvidia-cublas \
   nvidia-cuda-cupti \

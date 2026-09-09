@@ -57,8 +57,9 @@ pip_dl() {
 # These are the known large wheels — download individually so each is resumable
 # by simply re-running the script (pip download skips already-downloaded files).
 pip_dl "flashinfer_cubin==0.6.12"
-# sglang-kernel and sgl-deep-gemm: pip_dl can't hash-verify these correctly;
-# the build script fetches them directly from docs.sglang.ai with --no-deps.
+# sglang-kernel: must be fetched via ghfast.top (docs.sglang.ai redirects to github.com)
+dl "$GH/sgl-project/whl/releases/download/v0.4.4/sglang_kernel-0.4.4%2Bcu129-cp310-abi3-manylinux2014_x86_64.whl" \
+   "sglang_kernel-0.4.4+cu129-cp310-abi3-manylinux2014_x86_64.whl"
 pip_dl "nvidia-cudnn-cu12==9.17.1.4"
 pip_dl "nvidia-cublas-cu12==12.9.1.4.*"
 pip_dl "nvidia-cusparselt-cu12==0.7.1"
