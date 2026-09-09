@@ -173,9 +173,9 @@ if [ -f "$WHEELS_DIR/$FLASH_ATTN_WHL" ]; then
 else
   wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
     "$GH/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
-    -O /tmp/flash_attn.whl
-  echo "3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697  /tmp/flash_attn.whl" | sha256sum -c
-  pip install --no-deps /tmp/flash_attn.whl
+    -O "/tmp/$FLASH_ATTN_WHL"
+  echo "3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697  /tmp/$FLASH_ATTN_WHL" | sha256sum -c
+  pip install --no-deps "/tmp/$FLASH_ATTN_WHL"
 fi
 
 pip_install flash-linear-attention==0.4.2
