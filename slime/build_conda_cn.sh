@@ -202,7 +202,11 @@ else
   echo "flash_attn already installed, skipping pre-GPU pip block"
 fi
 
-pip install --no-build-isolation "transformer_engine[pytorch]==2.16.1" -i "$PIP_INDEX"
+# transformer_engine: no cu12+torch2.11 pre-built wheel exists; must build from source.
+# NVTE_RELEASE_BUILD=0 prevents it from trying to fetch a pre-built wheel from GitHub.
+NVTE_RELEASE_BUILD=0 NVTE_FRAMEWORK=pytorch \
+  pip install --no-build-isolation --no-binary transformer_engine_torch \
+  "transformer_engine[pytorch]==2.16.1" -i "$PIP_INDEX"
 
 # apex: clone from Gitee mirror then install
 if [ ! -d "$BASE_DIR/apex" ]; then
