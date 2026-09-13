@@ -109,90 +109,98 @@ if [ ! -d "$BASE_DIR/sglang" ]; then
 fi
 cd $BASE_DIR/sglang
 git checkout ${SGLANG_COMMIT}
-# Patch sglang's overly-conservative cuda-python>=13.0 pin.
-# sglang only uses cuda.bindings.driver/runtime, which exist in 12.9.x.
-# torch+cu129 requires cuda-bindings<13, so we relax to >=12.9 to let pip resolve freely.
-sed -i 's/"cuda-python>=13\.0"/"cuda-python>=12.9"/' python/pyproject.toml
-pip install -e "python[all]" \
-  --find-links "$TORCH_FIND_LINKS" \
-  ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
-  -i "$PIP_INDEX" --extra-index-url "$PIP_EXTRA"
-# Force-reinstall torch again to be sure (sglang may have overwritten with cu13 variant)
-pip install --force-reinstall --no-deps \
-  torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
-  --find-links "$TORCH_FIND_LINKS" \
-  ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
-  -i "$PIP_INDEX"
-SGK_WHL="sglang_kernel-0.4.4+cu129-cp310-abi3-manylinux2014_x86_64.whl"
-if [ ! -f "$WHEELS_DIR/$SGK_WHL" ]; then
-  wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
-    "$GH/sgl-project/whl/releases/download/v0.4.4/sglang_kernel-0.4.4%2Bcu129-cp310-abi3-manylinux2014_x86_64.whl" \
-    -O "$WHEELS_DIR/$SGK_WHL"
-fi
-pip install --force-reinstall --no-deps "$WHEELS_DIR/$SGK_WHL"
-# sgl-deep-gemm is pure-Python (no cu suffix), already in wheels dir from pip_dl
-SGD_WHL="sgl_deep_gemm-0.1.4-py3-none-manylinux2014_x86_64.whl"
-pip install --force-reinstall --no-deps "$WHEELS_DIR/$SGD_WHL"
-pip uninstall -y \
-  nvidia-cublas \
-  nvidia-cuda-cupti \
-  nvidia-cuda-nvrtc \
-  nvidia-cuda-runtime \
-  nvidia-cudnn-cu13 \
-  nvidia-cufft \
-  nvidia-cufile \
-  nvidia-curand \
-  nvidia-cusolver \
-  nvidia-cusparse \
-  nvidia-cusparselt-cu13 \
-  nvidia-nccl-cu13 \
-  nvidia-nvjitlink \
-  nvidia-nvshmem-cu13 \
-  nvidia-nvtx \
-  nvidia-cutlass-dsl-libs-cu13 \
-  || true
-pip install --force-reinstall --no-deps \
-  nvidia-cublas-cu12 \
-  nvidia-cuda-cupti-cu12 \
-  nvidia-cuda-nvrtc-cu12 \
-  nvidia-cuda-runtime-cu12 \
-  "nvidia-cudnn-cu12==9.16.0.29" \
-  nvidia-cufft-cu12 \
-  nvidia-cufile-cu12 \
-  nvidia-curand-cu12 \
-  nvidia-cusolver-cu12 \
-  nvidia-cusparse-cu12 \
-  nvidia-cusparselt-cu12 \
-  nvidia-nccl-cu12 \
-  nvidia-nvjitlink-cu12 \
-  nvidia-nvshmem-cu12 \
-  nvidia-nvtx-cu12 \
-  --find-links "$TORCH_FIND_LINKS" \
-  ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
-  -i "$PIP_INDEX"
 
-pip_install cmake ninja
+# Skip the entire pre-GPU block if flash-attn is already installed (resumed build).
+if ! python -c "import flash_attn" 2>/dev/null; then
+  # Patch sglang's overly-conservative cuda-python>=13.0 pin.
+  # sglang only uses cuda.bindings.driver/runtime, which exist in 12.9.x.
+  # torch+cu129 requires cuda-bindings<13, so we relax to >=12.9 to let pip resolve freely.
+  sed -i 's/"cuda-python>=13\.0"/"cuda-python>=12.9"/' python/pyproject.toml
+  pip install -e "python[all]" \
+    --find-links "$TORCH_FIND_LINKS" \
+    ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
+    -i "$PIP_INDEX" --extra-index-url "$PIP_EXTRA"
+  # Force-reinstall torch again to be sure (sglang may have overwritten with cu13 variant)
+  pip install --force-reinstall --no-deps \
+    torch==2.11.0+cu129 torchvision==0.26.0+cu129 torchaudio==2.11.0+cu129 \
+    --find-links "$TORCH_FIND_LINKS" \
+    ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
+    -i "$PIP_INDEX"
+  SGK_WHL="sglang_kernel-0.4.4+cu129-cp310-abi3-manylinux2014_x86_64.whl"
+  if [ ! -f "$WHEELS_DIR/$SGK_WHL" ]; then
+    wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
+      "$GH/sgl-project/whl/releases/download/v0.4.4/sglang_kernel-0.4.4%2Bcu129-cp310-abi3-manylinux2014_x86_64.whl" \
+      -O "$WHEELS_DIR/$SGK_WHL"
+  fi
+  pip install --force-reinstall --no-deps "$WHEELS_DIR/$SGK_WHL"
+  # sgl-deep-gemm is pure-Python (no cu suffix), already in wheels dir from pip_dl
+  SGD_WHL="sgl_deep_gemm-0.1.4-py3-none-manylinux2014_x86_64.whl"
+  pip install --force-reinstall --no-deps "$WHEELS_DIR/$SGD_WHL"
+  pip uninstall -y \
+    nvidia-cublas \
+    nvidia-cuda-cupti \
+    nvidia-cuda-nvrtc \
+    nvidia-cuda-runtime \
+    nvidia-cudnn-cu13 \
+    nvidia-cufft \
+    nvidia-cufile \
+    nvidia-curand \
+    nvidia-cusolver \
+    nvidia-cusparse \
+    nvidia-cusparselt-cu13 \
+    nvidia-nccl-cu13 \
+    nvidia-nvjitlink \
+    nvidia-nvshmem-cu13 \
+    nvidia-nvtx \
+    nvidia-cutlass-dsl-libs-cu13 \
+    || true
+  pip install --force-reinstall --no-deps \
+    nvidia-cublas-cu12 \
+    nvidia-cuda-cupti-cu12 \
+    nvidia-cuda-nvrtc-cu12 \
+    nvidia-cuda-runtime-cu12 \
+    "nvidia-cudnn-cu12==9.16.0.29" \
+    nvidia-cufft-cu12 \
+    nvidia-cufile-cu12 \
+    nvidia-curand-cu12 \
+    nvidia-cusolver-cu12 \
+    nvidia-cusparse-cu12 \
+    nvidia-cusparselt-cu12 \
+    nvidia-nccl-cu12 \
+    nvidia-nvjitlink-cu12 \
+    nvidia-nvshmem-cu12 \
+    nvidia-nvtx-cu12 \
+    --find-links "$TORCH_FIND_LINKS" \
+    ${WHEELS_DIR:+--find-links "$WHEELS_DIR"} \
+    -i "$PIP_INDEX"
 
-# flash-attn: use pre-downloaded wheel if available, else download via wget (resumable)
-FLASH_ATTN_WHL="flash_attn-2.8.3+cu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
-if [ -f "$WHEELS_DIR/$FLASH_ATTN_WHL" ]; then
-  pip install --no-deps "$WHEELS_DIR/$FLASH_ATTN_WHL"
+  pip_install cmake ninja
+
+  # flash-attn: use pre-downloaded wheel if available, else download via wget (resumable)
+  FLASH_ATTN_WHL="flash_attn-2.8.3+cu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl"
+  if [ -f "$WHEELS_DIR/$FLASH_ATTN_WHL" ]; then
+    pip install --no-deps "$WHEELS_DIR/$FLASH_ATTN_WHL"
+  elif [ -f "/tmp/$FLASH_ATTN_WHL" ]; then
+    pip install --no-deps "/tmp/$FLASH_ATTN_WHL"
+  else
+    wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
+      "$GH/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
+      -O "/tmp/$FLASH_ATTN_WHL"
+    echo "3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697  /tmp/$FLASH_ATTN_WHL" | sha256sum -c
+    pip install --no-deps "/tmp/$FLASH_ATTN_WHL"
+  fi
+
+  pip_install flash-linear-attention==0.4.2
+
+  # FlashQLA: try Gitee mirror first, fall back to GitHub via proxy
+  pip_install git+https://gitee.com/mirrors/FlashQLA.git --no-build-isolation 2>/dev/null || \
+    pip install git+$GH/QwenLM/FlashQLA.git --no-build-isolation
+
+  # tilelang
+  pip install tilelang -f https://tile-ai.github.io/whl/nightly/cu128/ -i "$PIP_INDEX"
 else
-  wget -q --show-progress --retry-connrefused --tries=20 --waitretry=15 --continue \
-    "$GH/lesj0610/flash-attention/releases/download/v2.8.3-cu12-torch2.11/flash_attn-2.8.3%2Bcu12torch2.11cxx11abiTRUE-cp312-cp312-linux_x86_64.whl" \
-    -O "/tmp/$FLASH_ATTN_WHL"
-  echo "3d0c8e60f820321eedd7166e79c33cb816263d8be6e35c3f5ba8fe2df6fea697  /tmp/$FLASH_ATTN_WHL" | sha256sum -c
-  pip install --no-deps "/tmp/$FLASH_ATTN_WHL"
+  echo "flash_attn already installed, skipping pre-GPU pip block"
 fi
-
-pip_install flash-linear-attention==0.4.2
-
-# FlashQLA: try Gitee mirror first, fall back to GitHub via proxy
-pip_install git+https://gitee.com/mirrors/FlashQLA.git --no-build-isolation 2>/dev/null || \
-  pip install git+$GH/QwenLM/FlashQLA.git --no-build-isolation
-
-# tilelang
-pip install tilelang -f https://tile-ai.github.io/whl/nightly/cu128/ -i "$PIP_INDEX"
 
 pip install --no-build-isolation "transformer_engine[pytorch]==2.16.1" -i "$PIP_INDEX"
 
